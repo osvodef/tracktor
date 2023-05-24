@@ -1,0 +1,117 @@
+* {
+    box-sizing: border-box;
+    user-select: none;
+}
+
+html,
+body {
+    margin: 0;
+    padding: 0;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+}
+
+img {
+    display: block;
+}
+
+.map {
+    position: absolute;
+    top: 0;
+    left: 0;
+    bottom: 220px;
+    width: 100%;
+}
+
+.bottom-panel {
+    display: flex;
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: 220px;
+    background-color: #ffffff;
+    padding: 20px;
+}
+
+.chart-container {
+    position: relative;
+    height: 160px;
+    flex-grow: 1;
+}
+
+.chart {
+    display: block;
+    width: 100%;
+    height: 100%;
+    cursor: text;
+}
+
+.ticks-bottom {
+    display: block;
+    width: 100%;
+    height: 20px;
+}
+
+.position-indicator {
+    visibility: hidden;
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 1px;
+    height: 160px;
+    border-left: 1px solid #333;
+    pointer-events: none;
+}
+
+.selection-indicator {
+    position: absolute;
+    display: none;
+    top: 0;
+    left: 0;
+    height: 160px;
+    pointer-events: none;
+    background-color: rgba(0, 0, 0, 0.1);
+}
+
+.toolbar {
+    width: 30px;
+    flex-grow: 0;
+    flex-shrink: 0;
+    margin-left: 10px;
+}
+
+.toolbar-button {
+    width: 30px;
+    height: 30px;
+    border-radius: 5px;
+    border: 2px solid #555;
+    cursor: pointer;
+}
+
+.toolbar-button:hover {
+    background-color: #eee;
+}
+
+.undo-button img {
+    margin: 5px 0 0 5px;
+    width: 18px;
+    height: 18px;
+}
+
+.save-button img {
+    margin: 4px 0 0 4px;
+    width: 18px;
+    height: 18px;
+}
+
+.delete-button img {
+    margin: 4px 0 0 4px;
+    width: 18px;
+    height: 18px;
+}
+
+.toolbar-button:not(:first-child) {
+    margin-top: 5px;
+}

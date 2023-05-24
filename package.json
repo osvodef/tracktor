@@ -1,0 +1,32 @@
+{
+    "name": "tracktor",
+    "version": "1.0.0",
+    "description": "GPS track editor",
+    "main": "src/index.js",
+    "scripts": {
+        "start": "webpack-dev-server",
+        "build": "npm run clean && webpack --mode=production",
+        "lint": "tslint -p tsconfig.json 'src/**/*.ts'",
+        "prettier": "prettier --check \"./src/**/*.ts\"",
+        "clean": "rm -rf dist"
+    },
+    "author": "Alex Fedosov",
+    "license": "ISC",
+    "devDependencies": {
+        "@types/file-saver": "^2.0.5",
+        "copy-webpack-plugin": "^11.0.0",
+        "fork-ts-checker-webpack-plugin": "^7.2.14",
+        "prettier": "^2.8.1",
+        "ts-loader": "^9.4.2",
+        "tslint": "^5.20.1",
+        "tslint-config-airbnb": "^5.11.2",
+        "typescript": "^3.9.10",
+        "webpack": "^5.75.0",
+        "webpack-cli": "^5.0.1",
+        "webpack-dev-server": "^4.11.1"
+    },
+    "dependencies": {
+        "file-saver": "^2.0.5",
+        "gpxparser": "^3.0.8"
+    }
+}

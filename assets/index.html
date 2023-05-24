@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="UTF-8" />
+        <meta
+            name="viewport"
+            content="width=device-width, height=device-height, initial-scale=1, user-scalable=no"
+        />
+
+        <title>Tracktor</title>
+        <link rel="shortcut icon" href="favicon.png" />
+        <link href="mapbox-gl.css" rel="stylesheet" />
+        <link href="style.css" rel="stylesheet" />
+    </head>
+    <body>
+        <div class="map"></div>
+        <div class="bottom-panel">
+            <div class="chart-container">
+                <canvas class="chart"></canvas>
+                <canvas class="ticks-bottom"></canvas>
+                <div class="position-indicator"></div>
+                <div class="selection-indicator"></div>
+            </div>
+            <div class="toolbar">
+                <div class="toolbar-button delete-button">
+                    <img src="delete.svg" />
+                </div>
+                <div class="toolbar-button undo-button">
+                    <img src="undo.svg" />
+                </div>
+                <div class="toolbar-button save-button">
+                    <img src="save.svg" />
+                </div>
+            </div>
+        </div>
+        <script src="mapbox-gl.js"></script>
+        <script src="bundle.js"></script>
+    </body>
+</html>

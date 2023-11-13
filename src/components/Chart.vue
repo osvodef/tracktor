@@ -1,26 +1,3 @@
-<template>
-  <div class="top-row">
-    <canvas ref="leftAxisCanvas" class="axis-left"></canvas>
-    <canvas
-      ref="chartCanvas"
-      class="chart"
-      @mousemove="setCursor"
-      @mouseout="store.resetCursor"
-      @wheel="zoom"
-    ></canvas>
-    <canvas ref="rightAxisCanvas" class="axis-right"></canvas>
-  </div>
-  <div class="bottom-row">
-    <canvas ref="bottomAxisCanvas" class="axis-bottom"></canvas>
-  </div>
-
-  <div class="cursor" :style="{ transform: `translateX(${cursorOffset}px)` }"></div>
-  <div class="cursor-left" :style="leftCursorStyle"></div>
-  <div class="cursor-right" :style="rightCursorStyle"></div>
-
-  <div class="selection-indicator"></div>
-</template>
-
 <script setup lang="ts">
   import { useStore } from '@/store';
   import { clamp } from '@/functions/misc';
@@ -35,6 +12,8 @@
     resetCanvas,
     crisp,
     downscale,
+    downscaleForDistance,
+    pointIndexByRatio,
   } from '@/functions/chart';
 
   const chartCanvas = ref<HTMLCanvasElement>();
@@ -76,14 +55,20 @@
 
     const minTime = track[0].time;
     const maxTime = track[track.length - 1].time;
-    const time = track[cursorPositionIndex].time;
+
+    const minDistance = 0;
+    const maxDistance = track[track.length - 1].distance;
 
     const width = chartWidth.value;
     const { chartStart, chartEnd } = store;
+    const time = track[cursorPositionIndex].time;
+    const distance = track[cursorPositionIndex].distance;
 
-    const x = projectX(time, minTime, maxTime, chartWidth.value, chartStart, chartEnd);
+    const x = store.byTime
+      ? projectX(time, minTime, maxTime, chartWidth.value, chartStart, chartEnd)
+      : projectX(distance, minDistance, maxDistance, chartWidth.value, chartStart, chartEnd);
 
-    return Math.floor(Math.min(x - chartPadding, width - 1));
+    return Math.round(Math.min(x - chartPadding, width - 1));
   });
 
   const leftCursorStyle = computed(() => {
@@ -136,7 +121,14 @@
   }
 
   watch(
-    [() => store.track, () => store.chartStart, () => store.chartEnd, chartWidth, chartHeight],
+    [
+      () => store.track,
+      () => store.chartStart,
+      () => store.chartEnd,
+      () => store.chartDomain,
+      chartWidth,
+      chartHeight,
+    ],
     () => draw(),
   );
 
@@ -164,32 +156,39 @@
     region.rect(chartPadding, 0, chartWidth.value, chartHeight.value);
     chartCtx.clip(region);
 
-    drawElevation(track, ranges);
+    drawAltitude(track, ranges);
     drawSpeed(track, ranges);
 
-    drawBottomAxis(ranges);
+    if (store.byTime) {
+      drawBottomAxisTime(ranges);
+    } else {
+      drawBottomAxisDistance(ranges);
+    }
     drawLeftAxis(ranges);
     drawRightAxis(ranges);
   }
 
-  function drawElevation(track: Track, ranges: Ranges): void {
+  function drawAltitude(track: Track, ranges: Ranges): void {
     const ctx = chartCtx;
 
     const width = chartWidth.value;
     const height = chartHeight.value;
 
     const { chartStart, chartEnd } = store;
-    const { minAltitude, maxAltitude, minTime, maxTime } = ranges;
+    const { minAltitude, maxAltitude, minTime, maxTime, minDistance, maxDistance } = ranges;
 
     ctx.beginPath();
 
-    const startIndex = Math.floor((track.length - 1) * store.chartStart);
-    const endIndex = Math.ceil((track.length - 1) * store.chartEnd);
+    const startIndex = pointIndexByRatio(track, store.chartStart, store.chartDomain);
+    const endIndex = pointIndexByRatio(track, store.chartEnd, store.chartDomain);
 
     for (let i = startIndex; i <= endIndex; i++) {
       const point = track[i];
 
-      const x = projectX(point.time, minTime, maxTime, width, chartStart, chartEnd);
+      const x = store.byTime
+        ? projectX(point.time, minTime, maxTime, width, chartStart, chartEnd)
+        : projectX(point.distance, minDistance, maxDistance, width, chartStart, chartEnd);
+
       const y = projectY(point.altitude, minAltitude, maxAltitude, height);
 
       if (i === 0) {
@@ -214,14 +213,23 @@
     const height = chartHeight.value;
 
     const { chartStart, chartEnd } = store;
-    const { minSpeed, maxSpeed, minTime, maxTime } = ranges;
+    const { minSpeed, maxSpeed, minTime, maxTime, minDistance, maxDistance } = ranges;
 
     ctx.beginPath();
 
-    const downscaled = downscale(track, width, chartStart, chartEnd);
+    const downscaled = store.byTime
+      ? downscale(track, width, chartStart, chartEnd)
+      : downscaleForDistance(track, width, chartStart, chartEnd);
 
     for (let i = 0; i < downscaled.length; i++) {
-      const x = projectX(downscaled[i][0], minTime, maxTime, width, chartStart, chartEnd);
+      const x = projectX(
+        downscaled[i][0],
+        store.byTime ? minTime : minDistance,
+        store.byTime ? maxTime : maxDistance,
+        width,
+        chartStart,
+        chartEnd,
+      );
       const y = projectY(downscaled[i][2], minSpeed, maxSpeed, height);
 
       if (i === 0) {
@@ -232,7 +240,14 @@
     }
 
     for (let i = downscaled.length - 1; i >= 0; i--) {
-      const x = projectX(downscaled[i][0], minTime, maxTime, width, chartStart, chartEnd);
+      const x = projectX(
+        downscaled[i][0],
+        store.byTime ? minTime : minDistance,
+        store.byTime ? maxTime : maxDistance,
+        width,
+        chartStart,
+        chartEnd,
+      );
       const y = projectY(downscaled[i][3], minSpeed, maxSpeed, height);
 
       ctx.lineTo(x, y);
@@ -247,7 +262,14 @@
     for (let i = 0; i < downscaled.length; i++) {
       const [time, speed] = downscaled[i];
 
-      const x = projectX(time, minTime, maxTime, width, chartStart, chartEnd);
+      const x = projectX(
+        time,
+        store.byTime ? minTime : minDistance,
+        store.byTime ? maxTime : maxDistance,
+        width,
+        chartStart,
+        chartEnd,
+      );
       const y = projectY(speed, minSpeed, maxSpeed, height);
 
       if (i === 0) {
@@ -267,7 +289,7 @@
     ctx.stroke();
   }
 
-  function drawBottomAxis(ranges: Ranges): void {
+  function drawBottomAxisTime(ranges: Ranges): void {
     const ctx = bottomAxisCtx;
     const width = chartWidth.value;
 
@@ -322,6 +344,55 @@
       const ss = String(date.getSeconds()).padStart(2, '0');
 
       const text = interval < 60 * 1000 ? `${hh}:${mm}:${ss}` : `${hh}:${mm}`;
+
+      ctx.fillText(text, x, 16);
+    }
+
+    ctx.strokeStyle = '#000000';
+    ctx.lineWidth = 1;
+    ctx.stroke();
+  }
+
+  function drawBottomAxisDistance(ranges: Ranges): void {
+    const ctx = bottomAxisCtx;
+    const width = chartWidth.value;
+
+    const { chartStart, chartEnd } = store;
+    const totalDistance = ranges.maxDistance;
+
+    resetCanvas(ctx);
+
+    ctx.font = '10px sans-serif';
+    ctx.textAlign = 'center';
+
+    ctx.beginPath();
+    ctx.moveTo(chartPadding, crisp(0));
+    ctx.lineTo(chartPadding + width, crisp(0));
+
+    const niceValues = [1, 5, 10, 50, 100, 500, 1000, 5000, 10000, 50000, 100000, 500000, 1000000];
+
+    const maxTicksCount = width / 50 / (chartEnd - chartStart);
+    const interval = calcTickInterval(niceValues, totalDistance, maxTicksCount);
+
+    for (let distance = 0; distance < totalDistance; distance += interval) {
+      const x = crisp(projectX(distance, 0, totalDistance, width, chartStart, chartEnd));
+
+      if (x < chartPadding || x > width + chartPadding) {
+        continue;
+      }
+
+      ctx.moveTo(x, 0);
+      ctx.lineTo(x, 5);
+
+      let text: string;
+
+      if (distance === 0) {
+        text = '0';
+      } else if (distance < 1000) {
+        text = `${distance}m`;
+      } else {
+        text = `${distance / 1000}km`;
+      }
 
       ctx.fillText(text, x, 16);
     }
@@ -400,6 +471,41 @@
   }
 </script>
 
+<template>
+  <div class="top-row">
+    <canvas ref="leftAxisCanvas" class="axis-left"></canvas>
+    <canvas
+      ref="chartCanvas"
+      class="chart"
+      @mousemove="setCursor"
+      @mouseout="store.resetCursor"
+      @wheel="zoom"
+    ></canvas>
+    <canvas ref="rightAxisCanvas" class="axis-right"></canvas>
+  </div>
+  <div class="bottom-row">
+    <canvas ref="bottomAxisCanvas" class="axis-bottom"></canvas>
+  </div>
+  <div class="domain-switch">
+    <span
+      @click="store.setChartDomain('distance')"
+      :class="['domain', { selected: store.byDistance }]"
+    >
+      distance
+    </span>
+    |
+    <span @click="store.setChartDomain('time')" :class="['domain', { selected: store.byTime }]">
+      time
+    </span>
+  </div>
+
+  <div class="cursor" :style="{ transform: `translateX(${cursorOffset}px)` }"></div>
+  <div class="cursor-left" :style="leftCursorStyle"></div>
+  <div class="cursor-right" :style="rightCursorStyle"></div>
+
+  <div class="selection-indicator"></div>
+</template>
+
 <style scoped>
   .top-row {
     width: 100%;
@@ -477,5 +583,23 @@
     height: 160px;
     pointer-events: none;
     background-color: rgba(0, 0, 0, 0.1);
+  }
+
+  .domain-switch {
+    text-align: center;
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: 12px;
+    margin: 5px 0;
+  }
+
+  .domain {
+    color: #007bab;
+    text-decoration: dotted;
+    cursor: pointer;
+  }
+
+  .domain.selected {
+    color: #000000;
+    cursor: default;
   }
 </style>

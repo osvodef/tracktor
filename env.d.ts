@@ -7,6 +7,8 @@ declare module '@osvodef/mapbox-gl' {
   const Map: any;
   const MercatorCoordinate: typeof mapboxgl.MercatorCoordinate;
   const Marker: typeof mapboxgl.Marker;
+  const NavigationControl: typeof mapboxgl.NavigationControl;
+  const ScaleControl: typeof mapboxgl.ScaleControl;
 
-  export { Map, accessToken, MercatorCoordinate, Marker };
+  export { Map, accessToken, MercatorCoordinate, Marker, NavigationControl, ScaleControl };
 }

@@ -27,7 +27,7 @@
     position: absolute;
     top: 0;
     left: 0;
-    bottom: 220px;
+    bottom: 230px;
     width: 100%;
   }
 
@@ -37,7 +37,7 @@
     left: 0;
     right: 0;
     bottom: 0;
-    height: 220px;
+    height: 230px;
     background-color: #ffffff;
     padding: 20px;
   }

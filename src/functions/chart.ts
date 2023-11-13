@@ -1,5 +1,6 @@
 import { chartPadding } from '@/constants';
-import { lerp, unlerp } from '@/functions/misc';
+import { clamp, lerp, unlerp } from '@/functions/misc';
+import type { Domain } from '@/types/misc';
 import type { Track } from '@/types/tracks';
 
 export function resetCanvas(context: CanvasRenderingContext2D): void {
@@ -108,4 +109,82 @@ export function downscale(
   }
 
   return result;
+}
+
+export function downscaleForDistance(
+  track: Track,
+  width: number,
+  chartStart: number,
+  chartEnd: number,
+): Array<[number, number, number, number]> {
+  const startIndex = pointIndexByRatio(track, chartStart, 'distance');
+  const endIndex = pointIndexByRatio(track, chartEnd, 'distance');
+
+  const startDistance = track[startIndex].distance;
+  const endDistance = track[endIndex].distance;
+  const range = endDistance - startDistance;
+
+  const step = range / width;
+  const downsampled: Array<[number, number, number, number]> = [];
+
+  let index = startIndex + 1;
+
+  for (let distance = startDistance; distance <= endDistance; distance += step) {
+    while (distance < track[index - 1].distance || distance > track[index].distance) {
+      index++;
+    }
+
+    const ratio = unlerp(distance, track[index - 1].distance, track[index].distance);
+    const speed = lerp(track[index - 1].speed, track[index].speed, ratio);
+
+    downsampled.push([distance, speed, speed, speed]);
+  }
+
+  return downsampled;
+}
+
+export function timeRatioToDistanceRatio(track: Track, ratio: number): number {
+  const distance = track[(track.length - 1) * ratio].distance;
+  const totalDistance = track[track.length - 1].distance;
+
+  return clamp(distance / totalDistance, 0, 1);
+}
+
+export function distanceRatioToTimeRatio(track: Track, ratio: number): number {
+  const minTime = track[0].time;
+  const maxTime = track[track.length - 1].time;
+
+  const totalDistance = track[track.length - 1].distance;
+  const distance = totalDistance * ratio;
+
+  const index = pointIndexByDistance(track, distance);
+  const time = track[index].time;
+
+  return unlerp(time, minTime, maxTime);
+}
+
+export function pointIndexByDistance(track: Track, distance: number): number {
+  let bestIndex = 0;
+  let bestError = Infinity;
+
+  for (let i = 0; i < track.length; i++) {
+    const error = Math.abs(distance - track[i].distance);
+    if (error < bestError) {
+      bestError = error;
+      bestIndex = i;
+    }
+  }
+
+  return bestIndex;
+}
+
+export function pointIndexByRatio(track: Track, ratio: number, domain: Domain): number {
+  if (domain === 'time') {
+    return Math.round((track.length - 1) * ratio);
+  }
+
+  const totalDistance = track[track.length - 1].distance;
+  const distance = totalDistance * ratio;
+
+  return pointIndexByDistance(track, distance);
 }

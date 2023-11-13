@@ -87,5 +87,7 @@ export function getRanges(track: Track): Ranges {
     maxSpeed,
     minTime: track[0].time,
     maxTime: track[track.length - 1].time,
+    minDistance: 0,
+    maxDistance: track[track.length - 1].distance,
   };
 }
